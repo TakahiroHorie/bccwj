@@ -13,4 +13,4 @@ if __name__ == '__main__':
 		BCCWJTagger = Tagger()
 		BCCWJTagger.setDoc(BCCWJProc.getSentData())
 		BCCWJTagger.makeEOSData()
-		BCCWJTagger.printData()
+		BCCWJTagger.printData("plain")
