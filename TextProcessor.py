@@ -19,7 +19,37 @@ class BCCWJProcessor:
 
 			self.__sentData.append(cleanText(sent.text_content()))
 
-	def getSentData(self): return self.__sentData
+	def getSentData(self):
+		return self.__sentData
+
+class CharProcessor:
+	def __init__(self):
+		self.sentData = []
+		self.toID_dic = {}
+		self.fromID_dic = {}
+
+	def setSentData(self, sentData:list):
+		self.sentData = sentData
+
+	def makeIDDict(self):
+		for sentence in self.sentData:
+			for char in sentence:
+				if char not in self.toID_dic:
+					index = len(self.toID_dic)
+					self.toID_dic[char] = index
+					self.fromID_dic[index] = char
+
+	def get_toIDDict(self):
+		return self.toID_dic
+	def get_fromIDDict(self):
+		return self.fromID_dic
+
+	def convertChar2ID(char:str):
+		return self.toID_dic[char]
+	def convertID2Char(id:int):
+		return self.fromID_dic[id]
+
+
 
 def cleanText(text:str):
 	text = text.replace('\n','')
@@ -27,3 +57,10 @@ def cleanText(text:str):
 	text = text.replace('　','')
 	text = text.replace('。','')
 	return text
+
+
+
+
+
+
+
