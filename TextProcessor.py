@@ -4,7 +4,7 @@ import lxml.html
 class BCCWJProcessor:
 	def __init__(self, corpus:str):
 		self.corpus = corpus
-		self.__sentData = []
+		self.sentData = []
 
 	def makeSentData(self):
 		inline_tag = ["ruby", "quote"]
@@ -17,10 +17,10 @@ class BCCWJProcessor:
 			if len(sent.attrib) > 0:
 				if sent.attrib["type"] == "quasi": continue
 
-			self.__sentData.append(cleanText(sent.text_content()))
+			self.sentData.append(cleanText(sent.text_content()))
 
 	def getSentData(self):
-		return self.__sentData
+		return self.sentData
 
 class CharProcessor:
 	def __init__(self):

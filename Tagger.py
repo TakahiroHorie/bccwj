@@ -3,7 +3,7 @@ from TextProcessor import CharProcessor
 
 class Tagger:
 
-	def init(self):
+	def __init__(self):
 		self.sentData = []
 		self.EOSData = []
 
