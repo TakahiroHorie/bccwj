@@ -13,10 +13,11 @@ if __name__ == '__main__':
 		BCCWJProc = BCCWJProcessor(corpus)
 		BCCWJProc.makeSentData()
 
-		CharProc.setSentData(BCCWJProc.getSentData())
+		CharProc.set_SentData(BCCWJProc.get_SentData())
 		CharProc.makeIDDict()
 
 		TextTagger = Tagger()
-		TextTagger.setSentData(BCCWJProc.getSentData())
+		TextTagger.set_SentData(BCCWJProc.get_SentData())
+		TextTagger.set_IDDict(CharProc.get_toIDDict(), CharProc.get_fromIDDict())
 		TextTagger.makeEOSData(byID=True)
-		TextTagger.printData("plain")
+		TextTagger.printData("withEOS")

@@ -19,7 +19,7 @@ class BCCWJProcessor:
 
 			self.sentData.append(cleanText(sent.text_content()))
 
-	def getSentData(self):
+	def get_SentData(self):
 		return self.sentData
 
 class CharProcessor:
@@ -28,7 +28,7 @@ class CharProcessor:
 		self.toID_dic = {}
 		self.fromID_dic = {}
 
-	def setSentData(self, sentData:list):
+	def set_SentData(self, sentData:list):
 		self.sentData = sentData
 
 	def makeIDDict(self):
@@ -44,9 +44,9 @@ class CharProcessor:
 	def get_fromIDDict(self):
 		return self.fromID_dic
 
-	def convertChar2ID(char:str):
+	def convertChar2ID(self, char:str):
 		return self.toID_dic[char]
-	def convertID2Char(id:int):
+	def convertID2Char(self, id:int):
 		return self.fromID_dic[id]
 
 
