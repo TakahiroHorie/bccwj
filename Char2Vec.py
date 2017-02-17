@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import chainer
 from chainer import cuda, optimizers, serializers, serializers, utils
@@ -17,33 +18,16 @@ class Char2Vec(chainer.Chain):
 		)
 
 	def __call__(self, focus_chars, context_chars, sampler, neg_size):
-		loss = None
+		loss_sum = None
 		for i in range(len(focus_chars)):
 			focus_char = Variable(np.array([focus_chars[i]], dtype=np.int32))
 			context_char = context_chars[i]
-			ls = F.negative_sampling(context_char, focus_char, self.embed.W, sampler, neg_size)
-			loss = ls if loss is None else loss + ls
-		return loss
+			loss = F.negative_sampling(context_char, focus_char, self.embed.W, sampler, neg_size)
+			loss_sum = loss if loss_sum is None else loss + loss
+		return loss_sum
 
 
 class Char2VecManager:
-
-	def __init__(self):
-		self.document = None
-		self.doc_size = None
-		self.char_num = None
-		## dictionary
-		self.toID_dic   = None
-		self.fromID_dic = None
-		## negative sampling
-		self.countID  = None
-		## batch
-		self.window_size = 3
-		self.batch_size = 50
-		self.neg_size = 5
-		## model
-		self.char_dim = 50
-		self.model = None
 
 	def set_IDDict(self, toID_dic:dict, fromID_dic:dict):
 		self.toID_dic = toID_dic
@@ -55,13 +39,16 @@ class Char2VecManager:
 		self.document = sentIDData
 		self.doc_size = len(sentIDData)
 	def set_Char2VecModel(self):
-		self.model = Char2Vec(self.char_num, self.char_dim)
+		char_dim = 50
+		self.model = Char2Vec(self.char_num, char_dim)
+		# serializers.save_npz("c2v-"+str(epoch)+".npz", self.model)
 
 	def makeBatchSet(self, ids):
+		window_size = 3
 		focus_chars, context_chars = [], []
 		for pos in ids:
 			focus_char = self.document[pos]
-			for i in range(1, self.window_size):
+			for i in range(1, window_size):
 				p = pos - i
 				if p >= 0:
 					focus_chars.append(focus_char)
@@ -79,6 +66,9 @@ class Char2VecManager:
 		return [focus_chars, context_chars]
 
 	def train(self):
+		batch_size = 50
+		neg_size = 5
+
 		cs = [self.countID[char] for char in range(len(self.countID))]
 		power = np.float32(0.75)
 		p = np.array(cs, power.dtype)
@@ -87,19 +77,20 @@ class Char2VecManager:
 		optimizer = optimizers.Adam()
 		optimizer.setup(self.model)
 
-		for epoch in range(10):
+		for epoch in range(30):
 			print('epoch: {0}'.format(epoch))
 			indexes = np.random.permutation(self.doc_size)
-			for pos in range(0, self.doc_size, self.batch_size):
-				ids = indexes[pos : (pos+self.batch_size) if (pos+self.batch_size) < self.doc_size else self.doc_size]
+			for pos in range(0, self.doc_size, batch_size):
+				ids = indexes[pos : (pos+batch_size) if (pos+batch_size) < self.doc_size else self.doc_size]
 				focus_chars, context_chars = self.makeBatchSet(ids)
 				self.model.zerograds()
-				loss = self.model(focus_chars, context_chars, sampler.sample, self.neg_size)
+				loss = self.model(focus_chars, context_chars, sampler.sample, neg_size)
 				loss.backward()
 				optimizer.update()
+			print(math.floor(loss.data))
+			serializers.save_npz("c2v-"+str(epoch)+".npz", self.model)
 
 		with open('w2v.model', 'w') as f:
-			f.write('%d %d\n' % (len(self.fromID_dic), self.char_dim))
 			w = self.model.embed.W.data
 			for i in range(w.shape[0]):
 				v = ' '.join(['%f' % v for v in w[i]])

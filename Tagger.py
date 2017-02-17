@@ -3,9 +3,6 @@ import re, jaconv
 class Tagger:
 
 	def __init__(self):
-		self.sentData = []
-		self.toID_dic = {}
-		self.fromID_dic = {}
 		self.EOSData = []
 
 	def set_sentData(self, sentData:list):

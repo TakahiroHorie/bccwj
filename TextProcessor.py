@@ -27,7 +27,6 @@ class BCCWJProcessor:
 class CharProcessor:
 	
 	def __init__(self):
-		self.sentData = []
 		self.toID_dic = {}
 		self.fromID_dic = {}
 		self.sentIDData = []
