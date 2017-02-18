@@ -42,9 +42,9 @@ class SplitterManager:
 	def set_EOSData(self, EOSData:list):
 		self.EOSData = EOSData
 
-	def train(self):
+	def train(self, epochs:int, trained_c2v:str):
 		C2Vmodel = Char2Vec(self.char_num, self.char_dim)
-		serializers.load_npz("c2v-9.npz", C2Vmodel)
+		serializers.load_npz(trained_c2v, C2Vmodel)
 		trained_C2V = Link.copy(C2Vmodel.embed)
 
 		self.model = Splitter(self.char_num, self.char_dim)
@@ -53,7 +53,7 @@ class SplitterManager:
 		optimizer = optimizers.Adam()
 		optimizer.setup(self.model)
 
-		for epoch in range(5):
+		for epoch in range(epochs):
 			s = []
 			for pos in range(len(self.document)):
 				char_id = self.document[pos]
@@ -64,9 +64,11 @@ class SplitterManager:
 					loss = self.model(s)
 					print(loss.data)
 					loss.backward()
+					if(len(s) > 30):
+						loss.unchain_backward()
 					optimizer.update()
 					s = []
-				if (pos % 100 == 0):
+				if (pos % 1000 == 0):
 					print(pos, "/", len(self.document)," finished")
 			outfile = "splitter-" + str(epoch) + ".model"
 			serializers.save_npz(outfile, self.model)

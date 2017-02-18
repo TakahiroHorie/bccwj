@@ -23,7 +23,7 @@ class Char2Vec(chainer.Chain):
 			focus_char = Variable(np.array([focus_chars[i]], dtype=np.int32))
 			context_char = context_chars[i]
 			loss = F.negative_sampling(context_char, focus_char, self.embed.W, sampler, neg_size)
-			loss_sum = loss if loss_sum is None else loss + loss
+			loss_sum = loss if loss_sum is None else loss_sum + loss
 		return loss_sum
 
 
@@ -41,7 +41,6 @@ class Char2VecManager:
 	def set_Char2VecModel(self):
 		char_dim = 50
 		self.model = Char2Vec(self.char_num, char_dim)
-		# serializers.save_npz("c2v-"+str(epoch)+".npz", self.model)
 
 	def makeBatchSet(self, ids):
 		window_size = 3
@@ -65,7 +64,12 @@ class Char2VecManager:
 					context_chars.append(cc_vec)
 		return [focus_chars, context_chars]
 
-	def train(self):
+	def train(self, epocks):
+		# gpu_device = 0
+		# cuda.get_device(gpu_device).use()
+		# model.to_gpu(gpu_device)
+		# xp = cuda.cupy
+		
 		batch_size = 50
 		neg_size = 5
 
@@ -77,7 +81,7 @@ class Char2VecManager:
 		optimizer = optimizers.Adam()
 		optimizer.setup(self.model)
 
-		for epoch in range(30):
+		for epoch in range(epocks):
 			print('epoch: {0}'.format(epoch))
 			indexes = np.random.permutation(self.doc_size)
 			for pos in range(0, self.doc_size, batch_size):
@@ -87,10 +91,11 @@ class Char2VecManager:
 				loss = self.model(focus_chars, context_chars, sampler.sample, neg_size)
 				loss.backward()
 				optimizer.update()
-			print(math.floor(loss.data))
+			print(loss.data)
 			serializers.save_npz("c2v-"+str(epoch)+".npz", self.model)
 
-		with open('w2v.model', 'w') as f:
+		with open('c2v.model', 'w') as f:
+			f.write('%d %d\n' % (len(self.fromID_dic), 50))
 			w = self.model.embed.W.data
 			for i in range(w.shape[0]):
 				v = ' '.join(['%f' % v for v in w[i]])
