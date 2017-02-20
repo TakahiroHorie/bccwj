@@ -29,15 +29,14 @@ class Char2Vec(chainer.Chain):
 
 class Char2VecManager:
 
-	def __init__(self, toID_dic:dict, fromID_dic:dict):
+	def __init__(self, toID_dic:dict, fromID_dic:dict, countID:dict):
 		self.toID_dic = toID_dic
 		self.fromID_dic = fromID_dic
+		self.countID = countID
 		char_num = len(toID_dic)
 		char_dim = 50
 		self.model = Char2Vec(char_num, char_dim)
 
-	def set_countID(self, countID:dict):
-		self.countID = countID
 	def set_sentIDData(self, sentIDData:list):
 		self.document = sentIDData
 		self.doc_size = len(sentIDData)
@@ -90,7 +89,8 @@ class Char2VecManager:
 				loss = self.model(focus_chars, context_chars, sampler.sample, neg_size)
 				loss.backward()
 				optimizer.update()
-			serializers.save_npz("c2v-"+str(epoch)+".npz", self.model)
+			print(epoch)
+			serializers.save_npz("short-c2v-"+str(epoch)+".npz", self.model)
 
 			with open("c2v-"+str(epoch)+".model", 'w') as f:
 				f.write('%d %d\n' % (len(self.fromID_dic), 50))
