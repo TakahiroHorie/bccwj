@@ -14,6 +14,7 @@ class Splitter(chainer.Chain):
 			H = L.Linear(char_dim*2, char_dim*2),
 			W = L.Linear(char_dim*2, 1),
 		)
+		self.char_dim = char_dim
 
 	def __call__(self, s):
 		accum_loss = 0
@@ -30,10 +31,18 @@ class Splitter(chainer.Chain):
 		return accum_loss
 
 	def charIntoVector(self, char_2gram):
-		char_id_prev = np.array([char_2gram[0]], dtype=np.int32)
-		char_id      = np.array([char_2gram[1]], dtype=np.int32)
-		x_prev = self.embed(Variable(char_id_prev, volatile="auto"))
-		x      = self.embed(Variable(char_id, volatile="auto"))
+		## testの未知語対応
+		if isinstance(char_2gram[0], str):
+			x_prev = Variable(np.array([[0]*self.char_dim], dtype=np.float32), volatile="auto")
+		if isinstance(char_2gram[1], str):
+			x = Variable(np.array([[0]*self.char_dim], dtype=np.float32), volatile="auto")
+
+		if not isinstance(char_2gram[0], str):
+			char_id_prev = np.array([char_2gram[0]], dtype=np.int32)
+			x_prev = self.embed(Variable(char_id_prev, volatile="auto"))
+		if not isinstance(char_2gram[1], str):
+			char_id = np.array([char_2gram[1]], dtype=np.int32)
+			x = self.embed(Variable(char_id, volatile="auto"))
 		return F.concat((x_prev, x), axis=1)
 
 class SplitterManager:
@@ -73,10 +82,8 @@ class SplitterManager:
 				if(len(s) > 30): loss.unchain_backward()
 				optimizer.update()
 				s = []
-				print(i, "/", len(self.document)," finished")
-			print(epoch, total_loss)
-
-			outfile = "splitter-" + str(epoch) + ".model"
+			print(epoch)
+			outfile = "model/splitter-" + str(epoch) + ".npz"
 			serializers.save_npz(outfile, self.model)
 
 

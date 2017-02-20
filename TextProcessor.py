@@ -59,8 +59,15 @@ class CharProcessor:
 					char = self.toID_dic[sent[i]]
 					PAD_flg = 0
 				else:
-					char_prev = self.toID_dic[sent[i-1]]
-					char = self.toID_dic[sent[i]]
+					if sent[i-1] in self.toID_dic:
+						char_prev = self.toID_dic[sent[i-1]]
+					else:
+						char_prev = sent[i-1]
+
+					if sent[i] in self.toID_dic:
+						char = self.toID_dic[sent[i]]
+					else:
+						char = sent[i]
 				bigram = [char_prev, char]
 				self.sentIDData_bi.append(bigram)
 
