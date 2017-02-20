@@ -1,8 +1,8 @@
 import math
 import numpy as np
 import chainer
-from chainer import cuda, optimizers, serializers, serializers, utils
-from chainer import Link, Chain, ChainList, Function, gradient_check, Variable
+from chainer import cuda, Function, gradient_check, Variable, optimizers, serializers, serializers, utils
+from chainer import Link, Chain, ChainList
 import chainer.functions as F
 import chainer.links as L
 from chainer.utils import walker_alias
@@ -18,29 +18,29 @@ class Char2Vec(chainer.Chain):
 		)
 
 	def __call__(self, focus_chars, context_chars, sampler, neg_size):
-		loss_sum = None
+		loss_sum = 0
 		for i in range(len(focus_chars)):
 			focus_char = Variable(np.array([focus_chars[i]], dtype=np.int32))
 			context_char = context_chars[i]
 			loss = F.negative_sampling(context_char, focus_char, self.embed.W, sampler, neg_size)
-			loss_sum = loss if loss_sum is None else loss_sum + loss
+			loss_sum += loss
 		return loss_sum
 
 
 class Char2VecManager:
 
-	def set_IDDict(self, toID_dic:dict, fromID_dic:dict):
+	def __init__(self, toID_dic:dict, fromID_dic:dict):
 		self.toID_dic = toID_dic
 		self.fromID_dic = fromID_dic
-		self.char_num = len(toID_dic)
+		char_num = len(toID_dic)
+		char_dim = 50
+		self.model = Char2Vec(char_num, char_dim)
+
 	def set_countID(self, countID:dict):
 		self.countID = countID
 	def set_sentIDData(self, sentIDData:list):
 		self.document = sentIDData
 		self.doc_size = len(sentIDData)
-	def set_Char2VecModel(self):
-		char_dim = 50
-		self.model = Char2Vec(self.char_num, char_dim)
 
 	def makeBatchSet(self, ids):
 		window_size = 3
@@ -69,7 +69,6 @@ class Char2VecManager:
 		# cuda.get_device(gpu_device).use()
 		# model.to_gpu(gpu_device)
 		# xp = cuda.cupy
-		
 		batch_size = 50
 		neg_size = 5
 
@@ -91,18 +90,14 @@ class Char2VecManager:
 				loss = self.model(focus_chars, context_chars, sampler.sample, neg_size)
 				loss.backward()
 				optimizer.update()
-			print(loss.data)
 			serializers.save_npz("c2v-"+str(epoch)+".npz", self.model)
 
-		with open('c2v.model', 'w') as f:
-			f.write('%d %d\n' % (len(self.fromID_dic), 50))
-			w = self.model.embed.W.data
-			for i in range(w.shape[0]):
-				v = ' '.join(['%f' % v for v in w[i]])
-				f.write('%s %s\n' % (self.fromID_dic[i], v))
-
-
-
+			with open("c2v-"+str(epoch)+".model", 'w') as f:
+				f.write('%d %d\n' % (len(self.fromID_dic), 50))
+				w = self.model.embed.W.data
+				for i in range(w.shape[0]):
+					v = ' '.join(['%f' % v for v in w[i]])
+					f.write('%s %s\n' % (self.fromID_dic[i], v))
 
 
 

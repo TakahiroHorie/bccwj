@@ -9,8 +9,6 @@ class BCCWJProcessor:
 		self.sentData = []
 
 	def makeSentData(self):
-		inline_tag = ["ruby", "quote"]
-
 		xml = open(self.corpus, "rb").read()
 		root = lxml.html.fromstring(xml)
 		sentences = root.xpath("//sentence")
@@ -18,7 +16,6 @@ class BCCWJProcessor:
 			## quasiのsentenceは除外
 			if len(sent.attrib) > 0:
 				if sent.attrib["type"] == "quasi": continue
-
 			self.sentData.append(cleanText(sent.text_content()))
 
 	def get_sentData(self):
@@ -30,8 +27,11 @@ class CharProcessor:
 		self.toID_dic = {}
 		self.fromID_dic = {}
 		self.sentIDData = []
+		self.sentIDData_bi = []
 		self.countID = collections.Counter()
 
+	def set_toIDDict(self, toID_dic:list):
+		self.toID_dic = toID_dic
 	def set_sentData(self, sentData:list):
 		self.sentData = sentData
 
@@ -46,20 +46,34 @@ class CharProcessor:
 
 	def make_sentIDData(self):
 		for sent in self.sentData:
-			for (i, char) in enumerate(sent):
+			for char in sent:
 				char = self.toID_dic[char]
 				self.sentIDData.append(char)
 
+	def make_sentIDData_bi(self):
+		PAD_flg = 1
+		for sent in self.sentData:
+			for i in range(len(sent)):
+				if (PAD_flg):
+					char_prev = "PAD"
+					char = self.toID_dic[sent[i]]
+					PAD_flg = 0
+				else:
+					char_prev = self.toID_dic[sent[i-1]]
+					char = self.toID_dic[sent[i]]
+				bigram = [char_prev, char]
+				self.sentIDData_bi.append(bigram)
+
 	def get_sentIDData(self):
 		return self.sentIDData
+	def get_sentIDData_bi(self):
+		return self.sentIDData_bi
 	def get_countID(self):
 		return self.countID
 	def get_toIDDict(self):
 		return self.toID_dic
 	def get_fromIDDict(self):
 		return self.fromID_dic
-
-
 
 def cleanText(text:str):
 	text = text.replace('\n','')
