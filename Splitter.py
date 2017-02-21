@@ -12,23 +12,25 @@ class Splitter(chainer.Chain):
 	def __init__(self, char_num, char_dim):
 		super(Splitter, self).__init__(
 			H = L.Linear(char_dim*2, char_dim*2),
-			W = L.Linear(char_dim*2, 1),
+			W = L.Linear(char_dim*2, 2),
 		)
 		self.char_dim = char_dim
 
 	def __call__(self, s):
-		accum_loss = 0
+		accum_loss, accum_acc = 0, 0
 		char_num, char_dim = self.embed.W.data.shape
 		h = Variable(np.zeros((1, char_dim*2), dtype=np.float32))
 		for char in s:
 			if(char[0][0]=="PAD"): continue
 
 			char2gram_vec = self.charIntoVector(char[0])
-			h = F.tanh(char2gram_vec + self.H(h))
-			EOS = Variable(np.array([char[1]], dtype=np.float32))
-			loss = F.mean_squared_error(self.W(h)[0], EOS)
+			h = F.sigmoid(char2gram_vec + self.H(h))
+			EOS = Variable(np.array([char[1]], dtype=np.int32))
+			loss = F.softmax_cross_entropy(self.W(h), EOS)
 			accum_loss += loss
-		return accum_loss
+			acc = F.accuracy(self.W(h), EOS)
+			accum_acc += acc
+		return accum_loss, accum_acc
 
 	def charIntoVector(self, char_2gram):
 		## testの未知語対応
@@ -69,21 +71,20 @@ class SplitterManager:
 
 		for epoch in range(epochs):
 			s = []
-			total_loss = 0
 			## batch: 0~50, 25~75, 50~100... 文字目
 			for i in range(0, len(self.document), 25):
 				for j in range(50):
 					pos = i+j
 					if(pos < len(self.document)): s.append([self.document[pos], self.EOSData[pos]])
 				self.model.zerograds()
-				loss = self.model(s)
+				loss, acc = self.model(s)
+				print(loss.data / 50, acc.data / 50)
 				loss.backward()
-				total_loss += loss.data
 				if(len(s) > 30): loss.unchain_backward()
 				optimizer.update()
 				s = []
 			print(epoch)
-			outfile = "model/splitter-" + str(epoch) + ".npz"
+			outfile = "model/sce-splitter-" + str(epoch) + ".npz"
 			serializers.save_npz(outfile, self.model)
 
 
