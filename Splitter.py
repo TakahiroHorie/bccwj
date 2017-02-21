@@ -24,7 +24,7 @@ class Splitter(chainer.Chain):
 			if(char[0][0]=="PAD"): continue
 
 			char2gram_vec = self.charIntoVector(char[0])
-			h = F.sigmoid(char2gram_vec + self.H(h))
+			h = F.tanh(char2gram_vec + self.H(h))
 			EOS = Variable(np.array([char[1]], dtype=np.int32))
 			loss = F.softmax_cross_entropy(self.W(h), EOS)
 			accum_loss += loss
@@ -84,8 +84,22 @@ class SplitterManager:
 				optimizer.update()
 				s = []
 			print(epoch)
-			outfile = "model/sce-splitter-" + str(epoch) + ".npz"
+			outfile = "model/sce2-splitter-" + str(epoch) + ".npz"
 			serializers.save_npz(outfile, self.model)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
