@@ -9,82 +9,74 @@ from Char2Vec import Char2Vec
 
 class Splitter(chainer.Chain):
 
-	def __init__(self, char_num, char_dim):
+	def __init__(self, char_num, char_dim, window_size:int=7):
 		super(Splitter, self).__init__(
-			H = L.Linear(char_dim*2, char_dim*2),
-			W = L.Linear(char_dim*2, 2),
+			embed = L.EmbedID(char_num, char_dim),
+			W = L.Linear(char_dim * window_size, 2),
 		)
 		self.char_dim = char_dim
 
-	def __call__(self, s):
-		accum_loss, accum_acc = 0, 0
+	def __call__(self, chars_EOS):
+		loss = 0
 		char_num, char_dim = self.embed.W.data.shape
-		h = Variable(np.zeros((1, char_dim*2), dtype=np.float32))
-		for char in s:
-			if(char[0][0]=="PAD"): continue
 
-			char2gram_vec = self.charIntoVector(char[0])
-			h = F.tanh(char2gram_vec + self.H(h))
-			EOS = Variable(np.array([char[1]], dtype=np.int32))
-			loss = F.softmax_cross_entropy(self.W(h), EOS)
-			accum_loss += loss
-			acc = F.accuracy(self.W(h), EOS)
-			accum_acc += acc
-		return accum_loss, accum_acc
+		charsVec = self.charsIntoVector(chars_EOS[0])
+		EOS = Variable(np.array([chars_EOS[1]], dtype=np.int32))
+		loss = F.softmax_cross_entropy(self.W(charsVec), EOS)
+		return loss
 
-	def charIntoVector(self, char_2gram):
-		## testの未知語対応
-		if isinstance(char_2gram[0], str):
-			x_prev = Variable(np.array([[0]*self.char_dim], dtype=np.float32), volatile="auto")
-		if isinstance(char_2gram[1], str):
-			x = Variable(np.array([[0]*self.char_dim], dtype=np.float32), volatile="auto")
+	def charsIntoVector(self, chars):
+		x = []
+		for char in chars:
+			## testの未知語対応
+			if isinstance(char, str):
+				x.append(Variable(np.array([[0]*self.char_dim], dtype=np.float32)))
 
-		if not isinstance(char_2gram[0], str):
-			char_id_prev = np.array([char_2gram[0]], dtype=np.int32)
-			x_prev = self.embed(Variable(char_id_prev, volatile="auto"))
-		if not isinstance(char_2gram[1], str):
-			char_id = np.array([char_2gram[1]], dtype=np.int32)
-			x = self.embed(Variable(char_id, volatile="auto"))
-		return F.concat((x_prev, x), axis=1)
+			if not isinstance(char, str):
+				char_id = np.array([char], dtype=np.int32)
+				x.append(self.embed(Variable(char_id)))
+		return F.concat((x[0], x[1], x[2], x[3], x[4], x[5], x[6]), axis=1)
 
 class SplitterManager:
 
-	def __init__(self, char_num:int, char_dim:int):
-		self.char_num = char_num
+	def __init__(self, char_num:int, char_dim:int, window_size:int=7):
+		self.char_num = char_num + 1 ## PAD分
 		self.char_dim = char_dim
+		self.window_size = window_size
 
-	def set_sentIDData_bi(self, sentIDData_bi:list):
-		self.document = sentIDData_bi
+	def set_sentIDData(self, sentIDData:list):
+		self.document = sentIDData
+		self.doc_size = len(sentIDData)
 	def set_EOSData(self, EOSData:list):
 		self.EOSData = EOSData
 
-	def train(self, epochs:int, trained_c2v:str):
-		C2Vmodel = Char2Vec(self.char_num, self.char_dim)
-		serializers.load_npz(trained_c2v, C2Vmodel)
-		trained_C2V = Link.copy(C2Vmodel.embed)
+	def train(self, epochs:int, resumed_model:str=None):
+		add_tag = ["PAD"]
 
-		self.model = Splitter(self.char_num, self.char_dim)
-		self.model.add_link("embed", trained_C2V)
+		self.model = Splitter(self.char_num, self.char_dim, self.window_size)
+		if resumed_model != None: serializers.load_npz(resumed_model, self.model)
 
 		optimizer = optimizers.Adam()
 		optimizer.setup(self.model)
 
 		for epoch in range(epochs):
-			s = []
-			## batch: 0~50, 25~75, 50~100... 文字目
-			for i in range(0, len(self.document), 25):
-				for j in range(50):
-					pos = i+j
-					if(pos < len(self.document)): s.append([self.document[pos], self.EOSData[pos]])
+			chars = []
+			for i in range(0, len(self.document)):
+				for j in range(self.window_size):
+					pos = i+(j-3)
+					if(pos < 0 or len(self.document) <= pos):
+						chars.append(self.char_num-1)
+					else:
+						chars.append(self.document[pos])
+				chars_EOS = [chars, self.EOSData[i]]
+				chars = []
 				self.model.zerograds()
-				loss, acc = self.model(s)
-				print(loss.data / 50, acc.data / 50)
+				loss = self.model(chars_EOS)
 				loss.backward()
-				if(len(s) > 30): loss.unchain_backward()
 				optimizer.update()
-				s = []
-			print(epoch)
-			outfile = "model/sce2-splitter-" + str(epoch) + ".npz"
+				if i % 1000 == 0:
+					print(str(i) + "/" + str(self.doc_size), str(loss.data))
+			outfile = "model/splitter-" + str(epoch) + ".npz"
 			serializers.save_npz(outfile, self.model)
 
 

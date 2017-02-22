@@ -27,7 +27,6 @@ class CharProcessor:
 		self.toID_dic = {}
 		self.fromID_dic = {}
 		self.sentIDData = []
-		self.sentIDData_bi = []
 		self.countID = collections.Counter()
 
 	def set_toIDDict(self, toID_dic:list):
@@ -47,34 +46,12 @@ class CharProcessor:
 	def make_sentIDData(self):
 		for sent in self.sentData:
 			for char in sent:
-				char = self.toID_dic[char]
+				if char in self.toID_dic:
+					char = self.toID_dic[char]
 				self.sentIDData.append(char)
-
-	def make_sentIDData_bi(self):
-		PAD_flg = 1
-		for sent in self.sentData:
-			for i in range(len(sent)):
-				if (PAD_flg):
-					char_prev = "PAD"
-					char = self.toID_dic[sent[i]]
-					PAD_flg = 0
-				else:
-					if sent[i-1] in self.toID_dic:
-						char_prev = self.toID_dic[sent[i-1]]
-					else:
-						char_prev = sent[i-1]
-
-					if sent[i] in self.toID_dic:
-						char = self.toID_dic[sent[i]]
-					else:
-						char = sent[i]
-				bigram = [char_prev, char]
-				self.sentIDData_bi.append(bigram)
 
 	def get_sentIDData(self):
 		return self.sentIDData
-	def get_sentIDData_bi(self):
-		return self.sentIDData_bi
 	def get_countID(self):
 		return self.countID
 	def get_toIDDict(self):
@@ -85,8 +62,6 @@ class CharProcessor:
 def cleanText(text:str):
 	text = text.replace('\n','')
 	text = text.replace('\r','')
-	text = text.replace('　','')
-	text = text.replace('。','')
 	return text
 
 
