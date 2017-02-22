@@ -61,14 +61,17 @@ class SplitterManager:
 			print("epoch:", epoch)
 			chars = []
 			for i in range(0, len(self.document)):
+				## Refactor-01: extract function
+				## input: i, window_size / output: chars
 				for j in range(self.window_size):
 					pos = i+(j-3)
 					if(pos < 0 or len(self.document) <= pos):
-						chars.append(self.char_num-1)
+						chars.append(self.char_num-1) ## PAD分
 					else:
 						chars.append(self.document[pos])
 				chars_EOS = [chars, self.EOSData[i]]
 				chars = []
+
 				self.model.zerograds()
 				loss = self.model(chars_EOS)
 				loss.backward()

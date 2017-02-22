@@ -14,23 +14,23 @@ class Tester:
 		self.ans_data = ans_data
 		self.fromIDDict = fromIDDict
 		self.char_num = len(toIDDict)
-		self.char_dim = 50
 
 	def set_model(self, trained_splitter:str):
-		self.model = Splitter(self.char_num+1, self.char_dim)
+		char_dim = 50
+		self.model = Splitter(self.char_num+1, char_dim)
 		serializers.load_npz(trained_splitter, self.model)
 
 	def splitTest(self):
-		total = len(self.test_data)
-		correct = 0
+		total, correct = len(self.test_data), 0
 		TP, FP, FN = 0, 0, 0
 		chars = []
 		s = ""
 		for i in range(len(self.test_data)):
+			## Refactor-01: show Splitter.py
 			for j in range(7):
 				pos = i+(j-3)
 				if(pos < 0 or len(self.test_data) <= pos):
-					chars.append(self.char_num-1)
+					chars.append(self.char_num-1) ## PAD分
 				else:
 					chars.append(self.test_data[pos])
 			chars_EOS = [chars, self.ans_data[i]]
@@ -54,8 +54,13 @@ class Tester:
 		accuracy = correct / total
 		precision = TP / (TP + FP)
 		recall = TP / (TP + FN)
-		F_score = (2*recall*precision) / (recall + precision)
+		F_score = (2*recall*precision) / (recall+precision)
 		print("F-score:", F_score, "Accuracy-rate:", accuracy)
+
+
+
+
+
 
 
 

@@ -13,7 +13,6 @@ TEST_DIR  = "corpora/bccwj/cxml/variable/oy_test/"
 MODEL_DIR  = "model/"
 
 CharProc = CharProcessor() ## CharID管理, ID化した文章を管理
-TextTagger = Tagger() ## EOSデータ
 corpora = glob.glob(TRAIN_DIR+"*.xml")
 for corpus in corpora:
 	BCCWJProc = BCCWJProcessor(corpus)
@@ -22,9 +21,6 @@ for corpus in corpora:
 	CharProc.set_sentData(BCCWJProc.get_sentData())
 	CharProc.make_IDDict()
 	CharProc.make_sentIDData()
-
-	TextTagger.set_sentData(BCCWJProc.get_sentData())
-	TextTagger.make_EOSData()
 
 if(args[1] == "spl_learn"):
 	epochs = args[2]
