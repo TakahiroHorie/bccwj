@@ -1,5 +1,3 @@
-import re, jaconv
-
 class Tagger:
 
 	def __init__(self):

@@ -5,8 +5,6 @@ from chainer import Link, Chain, ChainList
 import chainer.functions as F
 import chainer.links as L
 
-from Char2Vec import Char2Vec
-
 class Splitter(chainer.Chain):
 
 	def __init__(self, char_num, char_dim, window_size:int=7):
@@ -60,6 +58,7 @@ class SplitterManager:
 		optimizer.setup(self.model)
 
 		for epoch in range(epochs):
+			print("epoch:", epoch)
 			chars = []
 			for i in range(0, len(self.document)):
 				for j in range(self.window_size):
@@ -75,8 +74,8 @@ class SplitterManager:
 				loss.backward()
 				optimizer.update()
 				if i % 1000 == 0:
-					print(str(i) + "/" + str(self.doc_size), str(loss.data))
-			outfile = "model/splitter-" + str(epoch) + ".npz"
+					print(str(i) + " / " + str(self.doc_size), "finished")
+			outfile = "model/splitter-" + str(epoch+1) + ".npz"
 			serializers.save_npz(outfile, self.model)
 
 
