@@ -26,8 +26,6 @@ if(args[1] == "spl_learn"):
 	epochs = args[2]
 	CharProc_spl = CharProcessor()
 	TextTagger_spl = Tagger()
-	char_num = len(CharProc.get_toIDDict())
-	char_dim = 50
 	corpora = glob.glob(TRAIN_DIR+"*.xml")
 	for corpus in corpora:
 		BCCWJProc = BCCWJProcessor(corpus)
@@ -39,10 +37,13 @@ if(args[1] == "spl_learn"):
 
 		TextTagger_spl.set_sentData(BCCWJProc.get_sentData())
 		TextTagger_spl.make_EOSData()
-
+		
+	char_num = len(CharProc.get_toIDDict())
+	char_dim = 50
 	SplManager = SplitterManager(char_num, char_dim)
 	SplManager.set_sentIDData(CharProc_spl.get_sentIDData())
 	SplManager.set_EOSData(TextTagger_spl.get_EOSData())
+	SplManager.set_model()
 	SplManager.train(int(epochs))
 
 if(args[1] == "test"):

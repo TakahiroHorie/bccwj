@@ -5,7 +5,7 @@ from chainer import Link, Chain, ChainList
 import chainer.functions as F
 import chainer.links as L
 
-from Splitter import Splitter
+from Splitter import SplitterManager
 
 class Tester:
 
@@ -17,27 +17,20 @@ class Tester:
 
 	def set_model(self, trained_splitter:str):
 		char_dim = 50
-		self.model = Splitter(self.char_num+1, char_dim)
-		serializers.load_npz(trained_splitter, self.model)
+		self.SplManager = SplitterManager(self.char_num, char_dim)
+		self.SplManager.set_sentIDData(self.test_data)
+		self.SplManager.set_EOSData(self.ans_data)
+		self.SplManager.set_model(trained_splitter)
 
 	def splitTest(self):
 		total, correct = len(self.test_data), 0
 		TP, FP, FN = 0, 0, 0
-		chars = []
 		s = ""
 		for i in range(len(self.test_data)):
-			## Refactor-01: show Splitter.py
-			for j in range(7):
-				pos = i+(j-3)
-				if(pos < 0 or len(self.test_data) <= pos):
-					chars.append(self.char_num-1) ## PAD分
-				else:
-					chars.append(self.test_data[pos])
-			chars_EOS = [chars, self.ans_data[i]]
-			chars = []
+			chars_EOS = [self.SplManager.sliceByWindow(i), self.ans_data[i]]
 
-			charsVec = self.model.charsIntoVector(chars_EOS[0])
-			y = self.model.W(charsVec)
+			charsVec = self.SplManager.model.charsIntoVector(chars_EOS[0])
+			y = self.SplManager.model.W(charsVec)
 			ans = chars_EOS[1]
 			pred = np.argmax(y.data)
 
@@ -46,10 +39,10 @@ class Tester:
 			if(ans == 1 and pred == 0): FN += 1
 			if(ans == 0 and pred == 1): FP += 1
 
-			# s += self.fromIDDict[self.test_data[i]] if not isinstance(self.test_data[i], str) else str(self.test_data[i])
-			# if(pred == 1):
-			# 	print(s)
-			# 	s = ""
+			s += self.fromIDDict[self.test_data[i]] if not isinstance(self.test_data[i], str) else str(self.test_data[i])
+			if(pred == 1):
+				print(s)
+				s = ""
 
 		accuracy = correct / total
 		precision = TP / (TP + FP)

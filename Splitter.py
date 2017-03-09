@@ -33,7 +33,7 @@ class Splitter(chainer.Chain):
 			if not isinstance(char, str):
 				char_id = np.array([char], dtype=np.int32)
 				x.append(self.embed(Variable(char_id)))
-		return F.concat((x[0], x[1], x[2], x[3], x[4], x[5], x[6]), axis=1)
+		return F.concat(x, axis=1)
 
 class SplitterManager:
 
@@ -47,30 +47,18 @@ class SplitterManager:
 		self.doc_size = len(sentIDData)
 	def set_EOSData(self, EOSData:list):
 		self.EOSData = EOSData
-
-	def train(self, epochs:int, resumed_model:str=None):
-		add_tag = ["PAD"]
-
+	def set_model(self, trained_model:str=None):
 		self.model = Splitter(self.char_num, self.char_dim, self.window_size)
-		if resumed_model != None: serializers.load_npz(resumed_model, self.model)
+		if trained_model != None: serializers.load_npz(trained_model, self.model)
 
+	def train(self, epochs:int):
 		optimizer = optimizers.Adam()
 		optimizer.setup(self.model)
 
 		for epoch in range(epochs):
 			print("epoch:", epoch)
-			chars = []
 			for i in range(0, len(self.document)):
-				## Refactor-01: extract function
-				## input: i, window_size / output: chars
-				for j in range(self.window_size):
-					pos = i+(j-3)
-					if(pos < 0 or len(self.document) <= pos):
-						chars.append(self.char_num-1) ## PAD分
-					else:
-						chars.append(self.document[pos])
-				chars_EOS = [chars, self.EOSData[i]]
-				chars = []
+				chars_EOS = [self.sliceByWindow(i), self.EOSData[i]]
 
 				self.model.zerograds()
 				loss = self.model(chars_EOS)
@@ -80,6 +68,14 @@ class SplitterManager:
 					print(str(i) + " / " + str(self.doc_size), "finished")
 			outfile = "model/splitter-" + str(epoch+1) + ".npz"
 			serializers.save_npz(outfile, self.model)
+
+	def sliceByWindow(self, i:int):
+		chars = []
+		for j in range(self.window_size):
+			pos = i+(j-3)
+			charID = self.char_num-1 if(pos<0 or self.doc_size<=pos) else self.document[pos]
+			chars.append(charID)
+		return chars
 
 
 
